@@ -1,0 +1,84 @@
+# ============================================================
+# Candidate Intelligence System — Docker Compose
+# ============================================================
+version: "3.9"
+
+services:
+  # --- FastAPI Application ---
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cis_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      - DB_URL=postgresql+asyncpg://cis_user:cis_password@db:5432/candidate_ai
+      - REDIS_URL=redis://cache:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    volumes:
+      - ../models:/app/models
+      - ../data:/app/data
+      - uploads_volume:/app/data/uploads
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+
+  # --- PostgreSQL Database ---
+  db:
+    image: postgres:16-alpine
+    container_name: cis_db
+    environment:
+      POSTGRES_DB: candidate_ai
+      POSTGRES_USER: cis_user
+      POSTGRES_PASSWORD: cis_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cis_user -d candidate_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Redis Cache ---
+  cache:
+    image: redis:7-alpine
+    container_name: cis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Nginx Reverse Proxy ---
+  nginx:
+    image: nginx:alpine
+    container_name: cis_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_volume:

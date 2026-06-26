@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+
+# Data & Models (large files)
+data/raw/resumes/*
+data/processed/*
+data/embeddings/*
+data/uploads/*
+models/ranker/*.json
+models/ranker/*.txt
+models/embeddings/*.faiss
+models/authenticity/*.pkl
+models/cross_encoder/
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/

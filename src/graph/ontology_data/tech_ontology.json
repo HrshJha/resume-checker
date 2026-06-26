@@ -1,0 +1,87 @@
+{
+  "languages": [
+    {"name": "Python", "aliases": ["python3", "py"]},
+    {"name": "JavaScript", "aliases": ["js", "ecmascript", "es6"]},
+    {"name": "TypeScript", "aliases": ["ts"]},
+    {"name": "Java", "aliases": []},
+    {"name": "C++", "aliases": ["cpp", "cplusplus"]},
+    {"name": "C#", "aliases": ["csharp"]},
+    {"name": "Go", "aliases": ["golang"]},
+    {"name": "Rust", "aliases": []},
+    {"name": "Ruby", "aliases": []},
+    {"name": "Swift", "aliases": []},
+    {"name": "Kotlin", "aliases": []},
+    {"name": "Scala", "aliases": []},
+    {"name": "PHP", "aliases": []},
+    {"name": "R", "aliases": []},
+    {"name": "SQL", "aliases": []},
+    {"name": "Bash", "aliases": ["shell"]}
+  ],
+  "frontend": [
+    {"name": "React", "aliases": ["reactjs", "react.js"]},
+    {"name": "Angular", "aliases": ["angularjs"]},
+    {"name": "Vue.js", "aliases": ["vue", "vuejs"]},
+    {"name": "Next.js", "aliases": ["nextjs"]},
+    {"name": "Svelte", "aliases": []},
+    {"name": "HTML", "aliases": ["html5"]},
+    {"name": "CSS", "aliases": ["css3"]},
+    {"name": "Tailwind CSS", "aliases": ["tailwindcss"]},
+    {"name": "Redux", "aliases": []},
+    {"name": "Webpack", "aliases": []}
+  ],
+  "backend": [
+    {"name": "Node.js", "aliases": ["nodejs", "node"]},
+    {"name": "Express.js", "aliases": ["express", "expressjs"]},
+    {"name": "Django", "aliases": []},
+    {"name": "Flask", "aliases": []},
+    {"name": "FastAPI", "aliases": []},
+    {"name": "Spring", "aliases": ["spring boot"]},
+    {"name": "Ruby on Rails", "aliases": ["rails"]},
+    {"name": "ASP.NET", "aliases": ["dotnet"]}
+  ],
+  "databases": [
+    {"name": "PostgreSQL", "aliases": ["postgres", "pg"]},
+    {"name": "MySQL", "aliases": []},
+    {"name": "MongoDB", "aliases": ["mongo"]},
+    {"name": "Redis", "aliases": []},
+    {"name": "Elasticsearch", "aliases": ["es"]},
+    {"name": "DynamoDB", "aliases": []},
+    {"name": "SQLite", "aliases": []},
+    {"name": "Cassandra", "aliases": []},
+    {"name": "Neo4j", "aliases": []}
+  ],
+  "devops": [
+    {"name": "Docker", "aliases": []},
+    {"name": "Kubernetes", "aliases": ["k8s"]},
+    {"name": "Terraform", "aliases": []},
+    {"name": "Ansible", "aliases": []},
+    {"name": "Jenkins", "aliases": []},
+    {"name": "GitHub Actions", "aliases": []},
+    {"name": "GitLab CI/CD", "aliases": ["gitlab ci"]},
+    {"name": "CI/CD", "aliases": ["cicd"]},
+    {"name": "Nginx", "aliases": []}
+  ],
+  "cloud": [
+    {"name": "Amazon Web Services", "aliases": ["aws"]},
+    {"name": "Google Cloud Platform", "aliases": ["gcp", "google cloud"]},
+    {"name": "Microsoft Azure", "aliases": ["azure"]}
+  ],
+  "data_ml": [
+    {"name": "TensorFlow", "aliases": ["tf"]},
+    {"name": "PyTorch", "aliases": []},
+    {"name": "scikit-learn", "aliases": ["sklearn"]},
+    {"name": "pandas", "aliases": []},
+    {"name": "NumPy", "aliases": ["numpy"]},
+    {"name": "Apache Spark", "aliases": ["spark", "pyspark"]},
+    {"name": "Apache Kafka", "aliases": ["kafka"]},
+    {"name": "Apache Airflow", "aliases": ["airflow"]},
+    {"name": "Snowflake", "aliases": []},
+    {"name": "BigQuery", "aliases": []}
+  ],
+  "monitoring": [
+    {"name": "Prometheus", "aliases": []},
+    {"name": "Grafana", "aliases": []},
+    {"name": "Datadog", "aliases": []},
+    {"name": "ELK Stack", "aliases": ["elk"]}
+  ]
+}

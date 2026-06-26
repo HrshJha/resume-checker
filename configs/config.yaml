@@ -1,0 +1,111 @@
+# ============================================================
+# Candidate Intelligence System — Application Configuration
+# ============================================================
+
+app:
+  name: "Candidate Intelligence System"
+  version: "1.0.0"
+  debug: false
+
+# --- Parsing ---
+parsing:
+  max_file_size_mb: 10
+  parse_timeout_seconds: 30
+  supported_formats:
+    - "application/pdf"
+    - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  target_sections:
+    - "summary"
+    - "objective"
+    - "education"
+    - "experience"
+    - "work_history"
+    - "projects"
+    - "skills"
+    - "technical_skills"
+    - "certifications"
+    - "licenses"
+    - "publications"
+    - "research"
+    - "achievements"
+    - "awards"
+    - "links"
+    - "portfolio"
+    - "references"
+
+# --- Retrieval ---
+retrieval:
+  top_k_retrieval: 500
+  top_k_rerank: 100
+  hybrid_dense_weight: 0.7
+  hybrid_bm25_weight: 0.3
+  faiss_index_type: "IndexFlatIP"  # IndexFlatIP | IndexHNSWFlat | IndexIVFPQ
+  hnsw_m: 32
+  hnsw_ef_search: 200
+  hnsw_ef_construction: 200
+
+# --- Cross-Encoder ---
+cross_encoder:
+  batch_size: 8
+  max_candidates: 200
+
+# --- Ranking ---
+ranking:
+  primary_model: "xgboost"  # xgboost | lightgbm
+  target_features: 120
+  relevance_scale: 5  # 0-4 graded relevance
+
+# --- Skill Matching ---
+skills:
+  fuzzy_threshold: 85
+  canonicalization_enabled: true
+
+# --- Seniority Levels ---
+seniority:
+  levels:
+    intern: 0
+    junior: 1
+    engineer: 2
+    mid: 2
+    senior: 3
+    staff: 4
+    principal: 5
+    architect: 6
+    lead: 4
+    director: 5
+    vp: 6
+
+# --- Evidence Weights ---
+evidence:
+  weights:
+    experience: 1.0
+    projects: 0.8
+    certifications: 0.6
+    publications: 0.5
+    portfolio: 0.4
+    github: 0.3
+
+# --- Education Levels ---
+education:
+  levels:
+    none: 0
+    high_school: 0
+    diploma: 1
+    associate: 1
+    bachelor: 2
+    master: 3
+    phd: 4
+    doctorate: 4
+
+# --- Caching ---
+cache:
+  jd_embedding_ttl_hours: 24
+  cross_encoder_ttl_hours: 1
+  enabled: true
+
+# --- Security ---
+security:
+  bcrypt_rounds: 12
+  min_password_length: 8
+  max_text_length: 50000
+  max_string_field_length: 10000
