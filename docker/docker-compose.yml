@@ -15,7 +15,8 @@ services:
     env_file:
       - ../.env
     environment:
-      - DB_URL=postgresql+asyncpg://cis_user:cis_password@db:5432/candidate_ai
+      # M-2: Source credentials from .env — never commit passwords to source control.
+      - DB_URL=postgresql+asyncpg://${POSTGRES_USER:-cis_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-candidate_ai}
       - REDIS_URL=redis://cache:6379/0
     depends_on:
       db:
@@ -37,9 +38,10 @@ services:
     image: postgres:16-alpine
     container_name: cis_db
     environment:
-      POSTGRES_DB: candidate_ai
-      POSTGRES_USER: cis_user
-      POSTGRES_PASSWORD: cis_password
+      # M-2: Use the same env vars so they stay in sync with the app's DB_URL.
+      POSTGRES_DB: ${POSTGRES_DB:-candidate_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-cis_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
