@@ -1,0 +1,7 @@
+# This directory is managed by the GitHub Actions snake workflow.
+# The generated SVG files are committed to the `output` branch — not this branch.
+# Do not manually place SVG files here; they will be overwritten.
+#
+# Files generated (on the `output` branch):
+#   github-contribution-grid-snake.svg
+#   github-contribution-grid-snake-dark.svg

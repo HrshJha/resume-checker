@@ -687,31 +687,84 @@ timeline
 
 ## 🐍 Contribution Snake
 
-This README supports GitHub contribution snake animation through GitHub Actions and GitHub Pages.
+<h2 align="center">🐍 Watch My GitHub Contributions Come Alive</h2>
 
-```md
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg" />
-  <img alt="github contribution snake animation" src="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg" />
-</picture>
+<p align="center">
+  Every commit, PR, and review — transformed into a living snake crawling through my contribution graph.
+</p>
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg">
+    <img src="https://img.shields.io/badge/🐍_Live_Contribution_Snake-View_Animation-38BDF8?style=for-the-badge" alt="Live Contribution Snake Badge"/>
+  </a>
+</p>
+
+<br />
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg" />
+    <img
+      alt="GitHub Contribution Snake Animation"
+      src="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg"
+      width="100%"
+    />
+  </picture>
+</p>
+
+<br />
+
+### ⚙️ One-Time Setup
+
+Follow these steps to enable the snake animation in your fork or clone:
+
+1. **Enable GitHub Actions** — Go to `Settings → Actions → General` and set *Allow all actions and reusable workflows*.
+2. **Set workflow permissions** — Under `Settings → Actions → General → Workflow permissions`, select **Read and write permissions** and enable *Allow GitHub Actions to create and approve pull requests*.
+3. **Enable GitHub Pages** — Go to `Settings → Pages`, set *Source* to **Deploy from a branch**, and choose the `output` branch (root `/`). If the branch does not exist yet, run the workflow once first.
+4. **Add the workflow file** — Ensure `.github/workflows/snake.yml` is present in the repository (already included).
+5. **Trigger the workflow manually** — Go to `Actions → Generate Snake Animation → Run workflow`.
+6. **Verify output** — Confirm the `output` branch contains `github-contribution-grid-snake.svg` and `github-contribution-grid-snake-dark.svg`.
+
+> **Note**: The animation auto-regenerates daily via a scheduled cron job. No manual re-runs are needed after the first successful run.
+
+<br />
+
+<details>
+<summary><strong>🐛 Snake Animation Troubleshooting</strong></summary>
+
+<br />
+
+| Symptom | Root Cause | Fix |
+|---|---|---|
+| `403 Permission denied` on push | Workflow has read-only permissions | `Settings → Actions → General → Workflow permissions` → select **Read and write permissions** |
+| Image shows broken link / 404 | `output` branch hasn't been created yet | Trigger the workflow manually once via `Actions → Run workflow` |
+| Snake is empty / no contributions | Contribution graph is private or username is wrong | Verify `github_user_name` in `snake.yml` matches your GitHub username exactly |
+| GitHub Pages returns 404 | Pages not configured on `output` branch | `Settings → Pages → Source` → branch: `output`, folder: `/ (root)` |
+| Workflow never runs on schedule | Actions were disabled for the repository | `Settings → Actions → General` → enable **Allow all actions** |
+| Dark mode SVG not loading | `output` branch missing the dark variant | Ensure the workflow step generating the dark SVG completed without errors |
+| Repository was renamed | Old SVG URLs are now broken | Update the `raw.githubusercontent.com` URLs in this README to use the new repo name |
+| Private repository | `raw.githubusercontent.com` URLs require the branch to be public or Pages enabled | Use GitHub Pages URL instead: `https://<username>.github.io/<repo>/github-contribution-grid-snake.svg` |
+
+<br />
+
+**Checking workflow logs:**
+
+```bash
+# Via GitHub CLI
+gh run list --workflow=snake.yml
+gh run view <run-id> --log
 ```
 
-Setup:
+**Manually verifying the output branch:**
 
-1. Ensure GitHub Actions are enabled.
-2. Add `.github/workflows/snake.yml`.
-3. In repository settings, set workflow permissions to read and write.
-4. Run the workflow once manually.
-5. Confirm the `output` branch contains generated SVG files.
+```bash
+git fetch origin output
+git checkout output
+ls -la  # Should show: github-contribution-grid-snake.svg, github-contribution-grid-snake-dark.svg
+```
 
-Troubleshooting:
-
-| Issue | Fix |
-|---|---|
-| 403 permission error | Enable workflow write permissions in repository settings. |
-| Image not rendering | Confirm the `output` branch exists after the first run. |
-| Wrong username | Update `github_user_name` in the workflow. |
+</details>
 
 ---
 

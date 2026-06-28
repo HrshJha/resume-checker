@@ -1,0 +1,90 @@
+# ============================================================
+#  🐍 GitHub Contribution Snake Animation
+#
+#  Generates two SVG files from your GitHub contribution graph:
+#    - github-contribution-grid-snake.svg       (light mode)
+#    - github-contribution-grid-snake-dark.svg  (dark mode)
+#
+#  The files are pushed to the `output` branch, which is then
+#  served via raw.githubusercontent.com or GitHub Pages.
+#
+#  Prerequisites (one-time repository setup):
+#    1. Settings → Actions → General
+#       → "Allow all actions and reusable workflows"
+#       → Workflow permissions: "Read and write permissions" ✓
+#       → "Allow GitHub Actions to create and approve pull requests" ✓
+#    2. Settings → Pages
+#       → Source: "Deploy from a branch"
+#       → Branch: output   Folder: / (root)
+# ============================================================
+
+name: Generate Snake Animation
+
+on:
+  # ── Run automatically once per day at 00:30 UTC ────────────
+  schedule:
+    - cron: "30 0 * * *"
+
+  # ── Allow a manual trigger from the Actions tab ────────────
+  workflow_dispatch:
+
+  # ── Also run on every push to main (keeps it fresh) ────────
+  push:
+    branches:
+      - main
+
+# ── Grant the GITHUB_TOKEN permission to push to the repo ──
+permissions:
+  contents: write
+
+jobs:
+  generate-snake:
+    name: 🐍 Generate Contribution Snake
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Check out the source branch ──────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Generate both light and dark SVGs ────────────────
+      #
+      #  Action: Platane/snk  (latest v3, maintained & non-deprecated)
+      #  Docs:   https://github.com/Platane/snk
+      #
+      #  Outputs are written to the `dist/` directory inside the
+      #  action's workspace, then we move them into `output/`.
+      # ──────────────────────────────────────────────────────────
+      - name: Generate snake SVG (light mode)
+        uses: Platane/snk/svg-only@v3
+        with:
+          # ── Must match your GitHub username exactly ──────────
+          github_user_name: ${{ github.repository_owner }}
+
+          # ── Output path for the light-mode SVG ──────────────
+          outputs: |
+            output/github-contribution-grid-snake.svg
+            output/github-contribution-grid-snake-dark.svg?palette=github-dark
+
+      # ── 3. Push generated SVGs to the `output` branch ───────
+      #
+      #  Action: crazy-max/ghaction-github-pages  (maintained v4)
+      #  The `output/` folder is deployed to the orphan `output` branch.
+      # ──────────────────────────────────────────────────────────
+      - name: Push SVGs to output branch
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          # ── Target branch that receives the generated files ──
+          target_branch: output
+
+          # ── Only publish the contents of the output folder ──
+          build_dir: output
+
+          # ── Commit message shown on the output branch ────────
+          commit_message: "chore(snake): regenerate contribution snake [skip ci]"
+
+          # ── Keep the branch history clean (force-push) ───────
+          keep_history: false
+        env:
+          # ── Use the built-in GITHUB_TOKEN (no PAT required) ──
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
