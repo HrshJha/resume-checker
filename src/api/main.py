@@ -127,6 +127,22 @@ def create_app() -> FastAPI:
     # --- Mount Routers ---
     from src.api.routers import auth, candidates, health, jobs, search
 
+    @app.get("/", include_in_schema=False)
+    async def root():
+        """Human-friendly landing response for direct browser visits."""
+        return {
+            "name": "Candidate Intelligence System",
+            "status": "running",
+            "docs": "/api/docs",
+            "health": "/api/v1/health/",
+            "auth_flow": [
+                "POST /api/v1/auth/register",
+                "POST /api/v1/auth/token",
+                "Use the returned bearer token in Authorize on /api/docs",
+            ],
+            "resume_upload": "POST /api/v1/candidates/upload",
+        }
+
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["Job Descriptions"])
     app.include_router(candidates.router, prefix="/api/v1/candidates", tags=["Candidates"])
