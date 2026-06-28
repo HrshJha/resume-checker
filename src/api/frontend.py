@@ -181,9 +181,18 @@ Preferred:
             <div id="missingSkills"></div>
           </section>
         </div>
-        <section style="margin-top:16px">
-          <h2>Details</h2>
-          <div id="details"></div>
+          <div style="margin-top:16px">
+            <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
+          </div>
+        </section>
+        
+        <section style="margin-top:16px; border-color: var(--warn);">
+          <h2 style="color: var(--warn); display: flex; justify-content: space-between; align-items: center;">
+            <span>Developer Debug Panel</span>
+            <button id="toggleDebugBtn" class="secondary" style="margin: 0; padding: 4px 8px; width: auto; font-size: 12px;">Show Debug Data</button>
+          </h2>
+          <div id="debugPanel" style="display: none; font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #fffcf0; padding: 12px; border-radius: 6px; overflow-x: auto;">
+          </div>
         </section>
       </div>
     </section>
@@ -379,6 +388,28 @@ Preferred:
             <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
           </div>
         `;
+        
+        // Debug Panel Data
+        const debugData = {
+          "Candidate ID": state.candidateId,
+          "Page Count": state.candidate.page_count,
+          "Word Count": state.candidate.word_count,
+          "Experience Calculation": state.candidate.experience_metrics,
+          "Warnings": state.candidate.warnings,
+          "Raw Parsed Sections": Object.keys(state.candidate.sections || {}),
+          "BM25 Score (Lexical Behavior)": state.rank ? state.rank.behavior_score : 0,
+          "Cross-Encoder Score (Semantic Prob)": state.rank ? state.rank.semantic_score : 0,
+          "Weight Distribution": {
+            "Skills": 0.40,
+            "Experience": 0.20,
+            "Projects": 0.15,
+            "Education": 0.10,
+            "Semantic (BM25+CE)": 0.10,
+            "Preferred Skills": 0.05
+          }
+        };
+        $("debugPanel").textContent = JSON.stringify(debugData, null, 2);
+        
         setStatus("matchStatus", "Match complete.");
       } catch (err) {
         setStatus("matchStatus", `Match failed: ${err.message}`);
@@ -390,6 +421,18 @@ Preferred:
     $("loginBtn").addEventListener("click", registerOrLogin);
     $("uploadBtn").addEventListener("click", uploadResume);
     $("matchBtn").addEventListener("click", checkMatch);
+    
+    // Debug Panel Toggle
+    $("toggleDebugBtn").addEventListener("click", () => {
+      const panel = $("debugPanel");
+      if (panel.style.display === "none") {
+        panel.style.display = "block";
+        $("toggleDebugBtn").textContent = "Hide Debug Data";
+      } else {
+        panel.style.display = "none";
+        $("toggleDebugBtn").textContent = "Show Debug Data";
+      }
+    });
   </script>
 </body>
 </html>
