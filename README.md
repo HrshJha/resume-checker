@@ -685,35 +685,54 @@ timeline
 
 ---
 
-## 🐍 Contribution Snake
+---
 
-<h2 align="center">🐍 Watch My GitHub Contributions Come Alive</h2>
+# 🐍 Contribution Snake
 
-<p align="center">
-  Every commit, PR, and review — transformed into a living snake crawling through my contribution graph.
+<div align="center">
+
+### Watch My GitHub Contribution Graph Come Alive
+
+<p>
+Every commit, pull request, and review contributes to the snake's journey across my GitHub contribution graph.
 </p>
 
-<p align="center">
-  <a href="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg">
-    <img src="https://img.shields.io/badge/🐍_Live_Contribution_Snake-View_Animation-38BDF8?style=for-the-badge" alt="Live Contribution Snake Badge"/>
-  </a>
-</p>
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/HrshJha/resume-checker/output/github-contribution-grid-snake-dark.svg" />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="https://raw.githubusercontent.com/HrshJha/resume-checker/output/github-contribution-grid-snake.svg" />
+  <img
+    alt="GitHub Contribution Snake"
+    src="https://raw.githubusercontent.com/HrshJha/resume-checker/output/github-contribution-grid-snake.svg"
+    width="100%" />
+</picture>
 
-<br />
+<br>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg" />
-    <img
-      alt="GitHub Contribution Snake Animation"
-      src="https://raw.githubusercontent.com/harshkumarjha/candidate-ai/output/github-contribution-grid-snake.svg"
-      width="100%"
-    />
-  </picture>
-</p>
+<img src="https://img.shields.io/badge/Updated-Daily-success?style=for-the-badge&logo=githubactions&logoColor=white" />
+<img src="https://img.shields.io/badge/Generated%20With-GitHub%20Actions-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
+<img src="https://img.shields.io/badge/Theme-Light%20%7C%20Dark-6e40c9?style=for-the-badge" />
 
-<br />
+</div>
+
+<details>
+<summary><b>⚙️ How it works</b></summary>
+
+This animation is automatically generated using **GitHub Actions** every day.
+
+The workflow:
+
+- 📊 Reads your GitHub contribution graph
+- 🐍 Generates animated SVGs for light and dark themes
+- 🚀 Publishes them to the `output` branch
+- 📄 README loads the latest animation automatically
+
+</details>
+
+---
 
 ### ⚙️ One-Time Setup
 
