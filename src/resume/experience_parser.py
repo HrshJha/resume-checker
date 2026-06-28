@@ -59,6 +59,22 @@ def _is_role_line(line: str) -> bool:
     return any(kw in line_lower for kw in role_keywords)
 
 
+def _classify_entry_type(role: str, company: str) -> str:
+    """Classify the experience entry type (professional, internship, freelance, part-time, research)."""
+    combined = f"{role} {company}".lower()
+    
+    if "intern" in combined or "co-op" in combined:
+        return "internship"
+    if "freelance" in combined or "contract" in combined or "self-employed" in combined:
+        return "freelance"
+    if "part-time" in combined or "part time" in combined:
+        return "part-time"
+    if "research" in combined or "phd" in combined or "academic" in combined or "thesis" in combined:
+        return "research"
+        
+    return "professional"
+
+
 def _is_company_line(line: str) -> bool:
     """Check if a line likely contains a company name."""
     # Company lines are typically short and may include location
@@ -82,6 +98,7 @@ def parse_experience_section(text: str) -> list[dict]:
     - start_date: YYYY-MM format
     - end_date: YYYY-MM format
     - duration_months: Float
+    - entry_type: 'professional', 'internship', 'freelance', 'part-time', 'research'
     - bullets: List of achievement/responsibility strings
     - technologies: List of technologies mentioned
 
@@ -126,6 +143,7 @@ def parse_experience_section(text: str) -> list[dict]:
                 "start_date": format_date(start_date),
                 "end_date": format_date(end_date),
                 "duration_months": duration or 0,
+                "entry_type": "professional",
                 "bullets": [],
                 "technologies": [],
             }
@@ -167,6 +185,7 @@ def parse_experience_section(text: str) -> list[dict]:
                     "start_date": "",
                     "end_date": "",
                     "duration_months": 0,
+                    "entry_type": "professional",
                     "bullets": [],
                     "technologies": [],
                 }
@@ -177,8 +196,9 @@ def parse_experience_section(text: str) -> list[dict]:
     if current_entry:
         entries.append(current_entry)
 
-    # Deduplicate technologies per entry
+    # Finalize entries (type classification and tech deduplication)
     for entry in entries:
+        entry["entry_type"] = _classify_entry_type(entry["role"], entry["company"])
         entry["technologies"] = list(set(entry["technologies"]))
 
     logger.debug(f"Parsed {len(entries)} experience entries")

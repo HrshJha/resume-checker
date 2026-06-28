@@ -166,10 +166,10 @@ Preferred:
 
       <div id="results" style="display:none; margin-top:16px">
         <div class="score">
-          <div class="metric"><strong id="overallScore">0%</strong><span>Backend match</span></div>
-          <div class="metric"><strong id="skillScore">0%</strong><span>Required skills matched</span></div>
-          <div class="metric"><strong id="rankScore">0%</strong><span>Rank score</span></div>
-          <div class="metric"><strong id="expScore">0y</strong><span>Parsed experience</span></div>
+          <div class="metric"><strong id="overallScore">0%</strong><span>Final Match Score</span></div>
+          <div class="metric"><strong id="skillScore">0%</strong><span>Skills (40%)</span></div>
+          <div class="metric"><strong id="expScore">0%</strong><span>Experience (20%)</span></div>
+          <div class="metric"><strong id="semanticScore">0%</strong><span>Semantic Match (10%)</span></div>
         </div>
         <div class="grid">
           <section>
@@ -348,26 +348,36 @@ Preferred:
         const required = state.jd.required_skills || [];
         const candidateSkills = state.candidate.skills || [];
         const skillBreakdown = computeSkillBreakdown(required, candidateSkills);
-        const rankScore = state.rank ? state.rank.final_score : 0;
-        const overall = rankScore;
+        // Fetch Explanation
+        const explainResponse = await fetch(`/api/v1/search/rank/${state.jdId}/${state.candidateId}/explain`, {
+          headers: authHeaders()
+        });
+        const explainData = await readJson(explainResponse);
 
+        const rankScore = state.rank ? state.rank.final_score : 0;
+        
         $("results").style.display = "block";
-        $("overallScore").textContent = pct(overall);
-        $("skillScore").textContent = pct(skillBreakdown.ratio);
-        $("rankScore").textContent = pct(rankScore);
-        $("expScore").textContent = `${Number(state.candidate.experience_years || 0).toFixed(1)}y`;
+        $("overallScore").textContent = pct(rankScore);
+        $("skillScore").textContent = state.rank ? pct(state.rank.semantic_score) : "0%";
+        $("expScore").textContent = state.rank ? pct(state.rank.career_score) : "0%";
+        $("semanticScore").textContent = state.rank ? pct(state.rank.behavior_score) : "0%";
+        
         $("matchedSkills").innerHTML = pills(skillBreakdown.matched, "good");
         $("missingSkills").innerHTML = pills(skillBreakdown.missing, skillBreakdown.missing.length ? "bad" : "good");
         $("details").innerHTML = `
           <ul>
             <li><strong>JD role:</strong> ${escapeHtml(state.jd.role || "Unknown")}</li>
             <li><strong>JD domain:</strong> ${escapeHtml(state.jd.industry || "Unknown")}</li>
-            <li><strong>Candidate ID:</strong> ${escapeHtml(state.candidateId)}</li>
-            <li><strong>Candidate rank:</strong> ${state.rank ? "#" + state.rank.rank : "Not in ranked list"}</li>
-            <li><strong>Formula:</strong> 50% skill/text relevance, 20% evidence, 20% experience fit, 10% behavior signals.</li>
-            <li><strong>Explanation:</strong> ${escapeHtml(state.rank ? state.rank.explanation_summary : "No rank explanation available.")}</li>
-            <li><strong>All parsed candidate skills:</strong><br>${pills(candidateSkills)}</li>
+            <li><strong>Candidate Rank:</strong> ${state.rank ? "#" + state.rank.rank : "Not in ranked list"}</li>
+            <li><strong>Formula:</strong> 40% Skills, 20% Experience, 15% Projects, 10% Education, 10% Semantic (BM25+CE), 5% Preferred</li>
           </ul>
+          <div class="status" style="margin-top:16px">
+            <strong>Detailed Explanation:</strong><br><br>
+            ${escapeHtml(explainData.natural_language_explanation || state.rank.explanation_summary).replace(/\\n/g, '<br>')}
+          </div>
+          <div style="margin-top:16px">
+            <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
+          </div>
         `;
         setStatus("matchStatus", "Match complete.");
       } catch (err) {

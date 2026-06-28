@@ -53,6 +53,7 @@ class ParsedResume:
     certifications: list[dict] = field(default_factory=list)
     links: Optional[ResumeLinks] = None
     experience_years: float = 0.0
+    experience_metrics: dict[str, float] = field(default_factory=dict)
     page_count: int = 0
     word_count: int = 0
     warnings: list[str] = field(default_factory=list)
@@ -78,6 +79,7 @@ class ParsedResume:
                 "blog": self.links.blog if self.links else None,
             },
             "experience_years": self.experience_years,
+            "experience_metrics": self.experience_metrics,
             "page_count": self.page_count,
             "word_count": self.word_count,
             "warnings": self.warnings,
@@ -309,9 +311,15 @@ def parse_resume(
 
     # Step 6: Compute total experience years using interval union
     exp_ranges = []
+    ranges_by_type: dict[str, list] = {
+        "professional": [], "internship": [], "freelance": [], 
+        "part-time": [], "research": []
+    }
+    
     for exp in experience:
         start = exp.get("start_date")
         end = exp.get("end_date")
+        e_type = exp.get("entry_type", "professional")
         
         # Parse strings back to dates if they exist, else None
         s_date = parse_date(start) if start else None
@@ -319,9 +327,18 @@ def parse_resume(
         
         if s_date or e_date:
             exp_ranges.append((s_date, e_date))
+            if e_type in ranges_by_type:
+                ranges_by_type[e_type].append((s_date, e_date))
             
     total_months = compute_total_experience_months(exp_ranges)
     total_exp_years = total_months / 12.0
+    
+    experience_metrics = {}
+    for e_type, rngs in ranges_by_type.items():
+        if rngs:
+            experience_metrics[f"{e_type}_years"] = compute_total_experience_months(rngs) / 12.0
+        else:
+            experience_metrics[f"{e_type}_years"] = 0.0
 
     # Build evidence graph (skill → evidence sources)
     evidence_graph: dict[str, dict] = {}
@@ -370,6 +387,7 @@ def parse_resume(
         certifications=certifications,
         links=links,
         experience_years=total_exp_years,
+        experience_metrics=experience_metrics,
         page_count=page_count,
         word_count=word_count,
         warnings=warnings,

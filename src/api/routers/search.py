@@ -23,6 +23,8 @@ from src.api.models.request_models import (
 from src.api.repositories.jd_repo import JDRepository
 from src.api.repositories.ranking_repo import RankingRepository
 from src.api.repositories.candidate_repo import CandidateRepository
+from src.retrieval.bm25_retriever import build_bm25_index, search as bm25_search
+from src.retrieval.cross_encoder_reranker import rerank as cross_encoder_rerank
 from src.utils.logger import get_logger
 
 logger = get_logger("search_router")
@@ -180,11 +182,23 @@ async def rank_candidates(
     preferred_skills = _as_str_list(jd.preferred_skills)
     jd_text = str(jd.raw_text or "")
 
-    for candidate in candidates:
-        candidate_skills = _as_str_list(candidate.skills)
-        parsed_data = cast(Any, candidate.parsed_data) or {}
+    # Build BM25 index for fast keyword matching
+    candidate_texts = []
+    candidate_ids = []
+    for c in candidates:
+        parsed_data = cast(Any, c.parsed_data) or {}
         sections = parsed_data.get("sections", {}) if isinstance(parsed_data, dict) else {}
-        candidate_text = " ".join(str(value) for value in sections.values())
+        candidate_texts.append(" ".join(str(value) for value in sections.values()))
+        candidate_ids.append(str(c.candidate_id))
+
+    build_bm25_index(candidate_texts, candidate_ids)
+    bm25_results = dict(bm25_search(jd_text, top_k=len(candidates)))
+    max_bm25 = max(bm25_results.values()) if bm25_results else 1.0
+
+    fast_scored_candidates: list[ScoredCandidate] = []
+
+    for candidate, candidate_text in zip(candidates, candidate_texts):
+        candidate_skills = _as_str_list(candidate.skills)
 
         required_ratio, matched_required, missing_required = _skill_match_ratio(
             required_skills, candidate_skills
@@ -193,56 +207,94 @@ async def rank_candidates(
             preferred_skills, candidate_skills
         )
         text_overlap = _token_overlap_score(jd_text, candidate_text)
-        # Scoring Distribution (as per plan):
+        # Scoring Distribution:
         # - Skills Match: 40%
-        # - Experience Match: 25%
+        # - Experience Match: 20%
         # - Projects: 15%
         # - Education: 10%
+        # - Semantic Similarity (BM25 + CrossEncoder): 10%
         # - Preferred Skills: 5%
-        # - Certifications: 5%
 
         # Skills (40% required, 5% preferred)
-        semantic_score = min(1.0, required_ratio)
+        skill_score = min(1.0, required_ratio)
         preferred_score = min(1.0, preferred_ratio)
         
-        # Experience (25%)
+        # Experience (20%)
         career_score = _experience_score(
             float(candidate.experience_years or 0.0),
             float(jd.experience_min_years) if jd.experience_min_years is not None else None,
             float(jd.experience_max_years) if jd.experience_max_years is not None else None,
         )
-
-        # Evidence (Projects 15%, Education 10%, Certs 5%)
+        
+        # Evidence (Projects 15%, Education 10%, Certs 0% -> bundled in Education logic or separate)
         has_projects = 1.0 if candidate.projects else 0.0
         has_education = 1.0 if candidate.education else 0.0
-        has_certs = 1.0 if candidate.certifications else 0.0
         
-        evidence_score = min(1.0, (has_projects * 0.50) + (has_education * 0.33) + (has_certs * 0.17))
+        # Normalized BM25 score for the candidate
+        bm25_score = bm25_results.get(str(candidate.candidate_id), 0.0) / max_bm25
         
-        behavior_score = min(1.0, text_overlap * 2.0) # Used for logging but not in main final score
-
-        final_score = (
-            0.40 * semantic_score
+        # We compute a fast score without the cross-encoder (which takes the other 50% of the semantic 10%)
+        fast_score = (
+            0.40 * skill_score
             + 0.05 * preferred_score
-            + 0.25 * career_score
+            + 0.20 * career_score
             + 0.15 * has_projects
             + 0.10 * has_education
-            + 0.05 * has_certs
+            + 0.05 * bm25_score # Half of semantic score
         )
 
-        scored_candidates.append(
+        # Calibration: penalize candidates with high skills but zero experience if JD requires it
+        if float(jd.experience_min_years or 0) > 0 and float(candidate.experience_years or 0) < 0.5:
+            fast_score *= 0.8  # 20% penalty
+
+        # Evidence Score is used for Explainability
+        evidence_score = (has_projects + has_education) / 2.0
+        
+        fast_scored_candidates.append(
             {
                 "candidate": candidate,
-                "final_score": final_score,
-                "semantic_score": semantic_score,
+                "final_score": fast_score,
+                "semantic_score": skill_score,  # Reused as DB field
                 "evidence_score": evidence_score,
                 "career_score": career_score,
-                "behavior_score": behavior_score,
+                "behavior_score": bm25_score,  # Reusing behavior_score column to store bm25 for debug
                 "matched_required": matched_required,
                 "missing_required": missing_required,
                 "matched_preferred": matched_preferred,
             }
         )
+
+    # Sort by fast score and take top 100 for Cross-Encoder
+    fast_scored_candidates.sort(key=lambda item: item["final_score"], reverse=True)
+    top_candidates = fast_scored_candidates[:100]
+    
+    # Run Cross-Encoder
+    if top_candidates:
+        ce_candidate_texts = []
+        ce_candidate_ids = []
+        for item in top_candidates:
+            parsed = cast(Any, item["candidate"].parsed_data) or {}
+            sections = parsed.get("sections", {}) if isinstance(parsed, dict) else {}
+            text = " ".join(str(value) for value in sections.values())
+            ce_candidate_texts.append(text)
+            ce_candidate_ids.append(str(item["candidate"].candidate_id))
+            
+        ce_results = cross_encoder_rerank(jd_text, ce_candidate_texts, ce_candidate_ids, top_k=100)
+        ce_score_map = dict(ce_results)
+        
+        # Apply sigmoid to cross-encoder logits
+        import math
+        def sigmoid(x):
+            return 1 / (1 + math.exp(-x))
+            
+        for item in top_candidates:
+            logit = ce_score_map.get(str(item["candidate"].candidate_id), -10.0)
+            ce_prob = sigmoid(logit)
+            # Add the CrossEncoder 5% to the final score
+            item["final_score"] += (0.05 * ce_prob)
+
+    # Combine and final sort
+    scored_candidates = top_candidates + fast_scored_candidates[100:]
 
     scored_candidates.sort(key=lambda item: item["final_score"], reverse=True)
 
@@ -341,11 +393,14 @@ async def get_explanation(
         natural_language_explanation=(
             f"Candidate ranked #{ranking.rank} with a final score of {ranking.final_score * 100:.1f}%.\n\n"
             f"**Strengths**:\n"
-            f"- Strong semantic fit ({(ranking.semantic_score or 0) * 100:.1f}%) covering key requirements.\n"
-            f"- Demonstrated {ranking.career_score or 0:.1f} years of relevant calendar experience.\n"
-            f"- Strong evidence profile ({(ranking.evidence_score or 0) * 100:.1f}%).\n\n"
-            f"**Weaknesses/Gaps**:\n"
-            f"- Review missing preferred skills or potential domain gaps if score is below 80%."
+            f"- Technical Match: {ranking.semantic_score * 100:.1f}% of required skills found.\n"
+            f"- Experience: {ranking.career_score * 100:.1f}% match for the required seniority.\n"
+            f"- Semantic Search (BM25): {ranking.behavior_score * 100:.1f}% relevance to JD context.\n\n"
+            f"**Weaknesses & Gaps**:\n"
+            f"- Review missing required skills carefully.\n"
+            f"- Ensure domain overlaps exist if overall score < 80%.\n\n"
+            f"**Recommendation**: "
+            f"{'Strong hire' if ranking.final_score > 0.8 else 'Needs technical interview' if ranking.final_score > 0.6 else 'Pass'}"
         ),
         counterfactuals=[],
     )
