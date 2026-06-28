@@ -143,6 +143,14 @@ def create_app() -> FastAPI:
             "resume_upload": "POST /api/v1/candidates/upload",
         }
 
+    @app.get("/health", include_in_schema=False)
+    async def health_alias():
+        """Compatibility alias for users who try /health directly."""
+        return {
+            "status": "running",
+            "canonical_health_endpoint": "/api/v1/health/",
+        }
+
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["Job Descriptions"])
     app.include_router(candidates.router, prefix="/api/v1/candidates", tags=["Candidates"])

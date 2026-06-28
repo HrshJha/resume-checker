@@ -185,6 +185,17 @@ async def bulk_upload_resumes(
     )
 
 
+@router.get("/upload", include_in_schema=False)
+async def upload_resume_help():
+    """Human-friendly helper for browser visits to the upload endpoint."""
+    return {
+        "detail": "Resume upload requires POST with multipart form data.",
+        "docs": "/api/docs",
+        "endpoint": "POST /api/v1/candidates/upload",
+        "auth": "Register/login, then use the bearer token in Swagger Authorize.",
+    }
+
+
 @router.get("/{candidate_id}", response_model=CandidateDetailResponse)
 async def get_candidate(
     candidate_id: str,
