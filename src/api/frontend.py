@@ -181,9 +181,9 @@ Preferred:
             <div id="missingSkills"></div>
           </section>
         </div>
-          <div style="margin-top:16px">
-            <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
-          </div>
+        <section style="margin-top:16px" id="detailsSection" style="display:none;">
+          <h2>Details</h2>
+          <div id="details"></div>
         </section>
         
         <section style="margin-top:16px; border-color: var(--warn);">
@@ -322,6 +322,73 @@ Preferred:
       };
     }
 
+    // ----------------------------------------------------
+    // Rendering Modules (Defensive Programming)
+    // ----------------------------------------------------
+    function renderScoreCards(rankScore, semanticScore, expScore, behaviorScore) {
+      if (!$("overallScore")) return;
+      $("overallScore").textContent = pct(rankScore);
+      $("skillScore").textContent = pct(semanticScore);
+      $("expScore").textContent = pct(expScore);
+      $("semanticScore").textContent = pct(behaviorScore);
+    }
+
+    function renderMatchedSkills(matched, missing) {
+      if (!$("matchedSkills") || !$("missingSkills")) return;
+      $("matchedSkills").innerHTML = pills(matched, "good");
+      $("missingSkills").innerHTML = pills(missing, missing && missing.length ? "bad" : "good");
+    }
+
+    function renderDetails(jd, rank, candidateSkills, explanation) {
+      if (!$("details")) return;
+      const safeRole = escapeHtml(jd?.role || "Unknown");
+      const safeDomain = escapeHtml(jd?.industry || "Unknown");
+      const safeRank = rank ? "#" + rank.rank : "Not in ranked list";
+      const safeExplanation = escapeHtml(explanation || rank?.explanation_summary || "No explanation provided.").replace(/\\n/g, '<br>');
+      
+      $("details").innerHTML = `
+        <ul>
+          <li><strong>JD role:</strong> ${safeRole}</li>
+          <li><strong>JD domain:</strong> ${safeDomain}</li>
+          <li><strong>Candidate Rank:</strong> ${safeRank}</li>
+          <li><strong>Formula:</strong> 40% Skills, 20% Experience, 15% Projects, 10% Education, 10% Semantic (BM25+CE), 5% Preferred</li>
+        </ul>
+        <div class="status" style="margin-top:16px">
+          <strong>Detailed Explanation:</strong><br><br>
+          ${safeExplanation}
+        </div>
+        <div style="margin-top:16px">
+          <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
+        </div>
+      `;
+    }
+
+    function renderDebugPanel(candidateId, candidate, rank) {
+      if (!$("debugPanel")) return;
+      const debugData = {
+        "Candidate ID": candidateId,
+        "Page Count": candidate?.page_count || 0,
+        "Word Count": candidate?.word_count || 0,
+        "Experience Calculation": candidate?.experience_metrics || {},
+        "Warnings": candidate?.warnings || [],
+        "Raw Parsed Sections": Object.keys(candidate?.sections || {}),
+        "BM25 Score (Lexical Behavior)": rank?.behavior_score || 0,
+        "Cross-Encoder Score (Semantic Prob)": rank?.semantic_score || 0,
+        "Weight Distribution": {
+          "Skills": 0.40,
+          "Experience": 0.20,
+          "Projects": 0.15,
+          "Education": 0.10,
+          "Semantic (BM25+CE)": 0.10,
+          "Preferred Skills": 0.05
+        }
+      };
+      $("debugPanel").textContent = JSON.stringify(debugData, null, 2);
+    }
+
+    // ----------------------------------------------------
+    // API & Business Logic
+    // ----------------------------------------------------
     async function checkMatch() {
       if (!state.token) {
         setStatus("matchStatus", "Login first.");
@@ -331,13 +398,17 @@ Preferred:
         setStatus("matchStatus", "Upload a resume first.");
         return;
       }
-      $("matchBtn").disabled = true;
+      
+      const matchBtn = $("matchBtn");
+      if (matchBtn) matchBtn.disabled = true;
       setStatus("matchStatus", "Checking match...");
+      
       try {
         if (!state.candidate) await pollCandidate();
-        const jdText = $("jdText").value.trim();
+        const jdText = $("jdText")?.value.trim() || "";
         if (jdText.length < 50) throw new Error("Job description must be at least 50 characters.");
 
+        // Fetch JD
         const jdResponse = await fetch("/api/v1/jobs/", {
           method: "POST",
           headers: { ...authHeaders(), "Content-Type": "application/json" },
@@ -346,75 +417,50 @@ Preferred:
         state.jd = await readJson(jdResponse);
         state.jdId = state.jd.jd_id;
 
+        // Rank Candidates
         const rankResponse = await fetch("/api/v1/search/rank", {
           method: "POST",
           headers: { ...authHeaders(), "Content-Type": "application/json" },
           body: JSON.stringify({ jd_id: state.jdId, top_k: 100 })
         });
         const rankData = await readJson(rankResponse);
-        state.rank = rankData.results.find(r => r.candidate_id === state.candidateId) || null;
+        state.rank = rankData?.results?.find(r => r.candidate_id === state.candidateId) || null;
 
-        const required = state.jd.required_skills || [];
-        const candidateSkills = state.candidate.skills || [];
-        const skillBreakdown = computeSkillBreakdown(required, candidateSkills);
         // Fetch Explanation
-        const explainResponse = await fetch(`/api/v1/search/rank/${state.jdId}/${state.candidateId}/explain`, {
-          headers: authHeaders()
-        });
-        const explainData = await readJson(explainResponse);
+        let explainData = {};
+        try {
+            const explainResponse = await fetch(`/api/v1/search/rank/${state.jdId}/${state.candidateId}/explain`, {
+              headers: authHeaders()
+            });
+            explainData = await readJson(explainResponse);
+        } catch (e) {
+            console.warn("Could not fetch detailed explanation", e);
+        }
 
-        const rankScore = state.rank ? state.rank.final_score : 0;
+        // Breakdown logic
+        const required = state.jd?.required_skills || [];
+        const candidateSkills = state.candidate?.skills || [];
+        const skillBreakdown = computeSkillBreakdown(required, candidateSkills);
         
-        $("results").style.display = "block";
-        $("overallScore").textContent = pct(rankScore);
-        $("skillScore").textContent = state.rank ? pct(state.rank.semantic_score) : "0%";
-        $("expScore").textContent = state.rank ? pct(state.rank.career_score) : "0%";
-        $("semanticScore").textContent = state.rank ? pct(state.rank.behavior_score) : "0%";
+        // Render Modules
+        if ($("results")) $("results").style.display = "block";
         
-        $("matchedSkills").innerHTML = pills(skillBreakdown.matched, "good");
-        $("missingSkills").innerHTML = pills(skillBreakdown.missing, skillBreakdown.missing.length ? "bad" : "good");
-        $("details").innerHTML = `
-          <ul>
-            <li><strong>JD role:</strong> ${escapeHtml(state.jd.role || "Unknown")}</li>
-            <li><strong>JD domain:</strong> ${escapeHtml(state.jd.industry || "Unknown")}</li>
-            <li><strong>Candidate Rank:</strong> ${state.rank ? "#" + state.rank.rank : "Not in ranked list"}</li>
-            <li><strong>Formula:</strong> 40% Skills, 20% Experience, 15% Projects, 10% Education, 10% Semantic (BM25+CE), 5% Preferred</li>
-          </ul>
-          <div class="status" style="margin-top:16px">
-            <strong>Detailed Explanation:</strong><br><br>
-            ${escapeHtml(explainData.natural_language_explanation || state.rank.explanation_summary).replace(/\\n/g, '<br>')}
-          </div>
-          <div style="margin-top:16px">
-            <strong>All Parsed Candidate Skills:</strong><br>${pills(candidateSkills)}
-          </div>
-        `;
+        renderScoreCards(
+          state.rank?.final_score || 0,
+          state.rank?.semantic_score || 0,
+          state.rank?.career_score || 0,
+          state.rank?.behavior_score || 0
+        );
         
-        // Debug Panel Data
-        const debugData = {
-          "Candidate ID": state.candidateId,
-          "Page Count": state.candidate.page_count,
-          "Word Count": state.candidate.word_count,
-          "Experience Calculation": state.candidate.experience_metrics,
-          "Warnings": state.candidate.warnings,
-          "Raw Parsed Sections": Object.keys(state.candidate.sections || {}),
-          "BM25 Score (Lexical Behavior)": state.rank ? state.rank.behavior_score : 0,
-          "Cross-Encoder Score (Semantic Prob)": state.rank ? state.rank.semantic_score : 0,
-          "Weight Distribution": {
-            "Skills": 0.40,
-            "Experience": 0.20,
-            "Projects": 0.15,
-            "Education": 0.10,
-            "Semantic (BM25+CE)": 0.10,
-            "Preferred Skills": 0.05
-          }
-        };
-        $("debugPanel").textContent = JSON.stringify(debugData, null, 2);
+        renderMatchedSkills(skillBreakdown.matched, skillBreakdown.missing);
+        renderDetails(state.jd, state.rank, candidateSkills, explainData?.natural_language_explanation);
+        renderDebugPanel(state.candidateId, state.candidate, state.rank);
         
         setStatus("matchStatus", "Match complete.");
       } catch (err) {
         setStatus("matchStatus", `Match failed: ${err.message}`);
       } finally {
-        $("matchBtn").disabled = false;
+        if (matchBtn) matchBtn.disabled = false;
       }
     }
 
