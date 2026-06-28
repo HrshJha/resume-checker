@@ -819,10 +819,10 @@ Built with excellent open-source projects:
 
 **Harsh Kumar Jha**
 
-[![GitHub](https://img.shields.io/badge/GitHub-harshkumarjha-181717?style=for-the-badge&logo=github)](https://github.com/harshkumarjha)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:your.email@example.com)
-[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-111827?style=for-the-badge&logo=vercel&logoColor=white)](https://example.com)
+[![GitHub](https://img.shields.io/badge/GitHub-harshkumarjha-181717?style=for-the-badge&logo=github)](https://github.com/hrshjha)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/hrshjha)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:contactharshjh@gmail.com)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-111827?style=for-the-badge&logo=vercel&logoColor=white)](https://contactharsh.in)
 
 <br />
 
