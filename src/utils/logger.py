@@ -13,7 +13,6 @@ import sys
 from typing import Any
 
 from loguru import logger
-import loguru
 
 # ---------------------------------------------------------------------------
 # PII masking patterns

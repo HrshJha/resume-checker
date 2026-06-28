@@ -77,7 +77,7 @@ async def rank_candidates(
         # Compute basic similarity scores (placeholder until models are loaded)
         semantic_score = max(0.0, 1.0 - (rank_idx * 0.05))
         evidence_score = 0.5
-        career_score = min(1.0, (candidate.experience_years or 0) / 10.0)
+        career_score = min(1.0, float(candidate.experience_years or 0) / 10.0)
         behavior_score = 0.5
         final_score = (
             0.4 * semantic_score
