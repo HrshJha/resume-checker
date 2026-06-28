@@ -1,0 +1,64 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Candidate Intelligence System</title>
+  <desc id="desc">Dark AI hiring platform hero banner with resume cards, vector graph, and ranking panel.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08111F"/>
+      <stop offset="0.45" stop-color="#10233E"/>
+      <stop offset="1" stop-color="#06131B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="246" y1="114" x2="1320" y2="450" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="0.5" stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.22 0 0 0 0 0.74 0 0 0 0 0.97 0 0 0 0.55 0"/>
+      <feBlend in2="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="520" rx="34" fill="url(#bg)"/>
+  <path d="M0 430C186 316 324 392 514 291C704 190 824 110 1022 176C1220 242 1364 112 1600 64V520H0V430Z" fill="#0F766E" opacity="0.18"/>
+  <path d="M88 92H1512" stroke="#93C5FD" stroke-opacity="0.08"/>
+  <path d="M88 170H1512" stroke="#93C5FD" stroke-opacity="0.08"/>
+  <path d="M88 248H1512" stroke="#93C5FD" stroke-opacity="0.08"/>
+  <path d="M88 326H1512" stroke="#93C5FD" stroke-opacity="0.08"/>
+  <circle cx="1230" cy="148" r="116" fill="#38BDF8" opacity="0.11" filter="url(#glow)"/>
+  <circle cx="376" cy="376" r="150" fill="#22C55E" opacity="0.10" filter="url(#glow)"/>
+  <g opacity="0.95">
+    <rect x="116" y="132" width="344" height="250" rx="22" fill="#0B1628" stroke="#1E3A5F"/>
+    <rect x="148" y="166" width="92" height="92" rx="18" fill="#13294B" stroke="#38BDF8" stroke-opacity="0.45"/>
+    <circle cx="194" cy="198" r="18" fill="#38BDF8"/>
+    <path d="M162 244C173 224 214 224 226 244" stroke="#93C5FD" stroke-width="8" stroke-linecap="round"/>
+    <rect x="264" y="170" width="154" height="14" rx="7" fill="#E5F3FF"/>
+    <rect x="264" y="204" width="116" height="12" rx="6" fill="#7DD3FC"/>
+    <rect x="148" y="292" width="270" height="12" rx="6" fill="#284968"/>
+    <rect x="148" y="322" width="214" height="12" rx="6" fill="#284968"/>
+  </g>
+  <g>
+    <path d="M550 257C638 170 725 348 812 253C899 158 1006 254 1088 190" stroke="url(#accent)" stroke-width="8" stroke-linecap="round" opacity="0.95"/>
+    <circle cx="550" cy="257" r="15" fill="#38BDF8"/>
+    <circle cx="812" cy="253" r="15" fill="#22C55E"/>
+    <circle cx="1088" cy="190" r="15" fill="#F59E0B"/>
+    <rect x="594" y="312" width="114" height="34" rx="17" fill="#0EA5E9" fill-opacity="0.20" stroke="#38BDF8"/>
+    <text x="651" y="334" fill="#BAE6FD" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="middle">FAISS</text>
+    <rect x="732" y="312" width="114" height="34" rx="17" fill="#22C55E" fill-opacity="0.18" stroke="#22C55E"/>
+    <text x="789" y="334" fill="#BBF7D0" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="middle">BM25</text>
+    <rect x="870" y="312" width="160" height="34" rx="17" fill="#F59E0B" fill-opacity="0.17" stroke="#F59E0B"/>
+    <text x="950" y="334" fill="#FDE68A" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="middle">Reranker</text>
+  </g>
+  <g opacity="0.96">
+    <rect x="1164" y="126" width="320" height="276" rx="22" fill="#0B1628" stroke="#1E3A5F"/>
+    <text x="1200" y="176" fill="#E0F2FE" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700">Top Matches</text>
+    <rect x="1200" y="212" width="228" height="20" rx="10" fill="#1D4ED8"/>
+    <rect x="1200" y="254" width="196" height="20" rx="10" fill="#059669"/>
+    <rect x="1200" y="296" width="166" height="20" rx="10" fill="#D97706"/>
+    <rect x="1200" y="338" width="240" height="20" rx="10" fill="#475569"/>
+    <text x="1448" y="230" fill="#BAE6FD" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="end">96%</text>
+    <text x="1448" y="272" fill="#BBF7D0" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="end">88%</text>
+    <text x="1448" y="314" fill="#FDE68A" font-family="Inter,Arial,sans-serif" font-size="18" text-anchor="end">74%</text>
+  </g>
+  <text x="800" y="96" fill="#F8FAFC" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="800" text-anchor="middle">Candidate Intelligence System</text>
+  <text x="800" y="444" fill="#C7D2FE" font-family="Inter,Arial,sans-serif" font-size="24" text-anchor="middle">Resume parsing · Semantic retrieval · Explainable ranking · FastAPI</text>
+</svg>
