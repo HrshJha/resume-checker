@@ -23,6 +23,7 @@ from src.utils.file_validator import validate_file
 from src.utils.logger import get_logger
 from src.utils.skill_canonicalizer import SkillCanonicalizer
 from src.utils.text_cleaner import clean_text
+from src.utils.date_normalizer import parse_date, compute_total_experience_months
 
 logger = get_logger("resume_parser")
 
@@ -277,12 +278,25 @@ def parse_resume(
     if proj_text:
         projects = parse_projects_section(proj_text)
 
-    # Skills
-    skills: list[str] = []
+    # Skills - Extract from full text to avoid missing skills embedded in experience
+    skills: list[str] = canonicalizer.extract_skills_from_text(full_text)
     raw_skills: list[str] = []
+    
+    # Also extract from explicitly defined skills section for raw tokens
     skills_text = get_section_content(section_result, "skills")
     if skills_text:
-        skills, raw_skills = _extract_skills_from_section(skills_text, canonicalizer)
+        section_skills, section_raw = _extract_skills_from_section(skills_text, canonicalizer)
+        raw_skills = section_raw
+        for s in section_skills:
+            if s not in skills:
+                skills.append(s)
+
+    # Output Validation (Stage 9)
+    if not skills:
+        raise ValueError(
+            f"Extraction Failed: Zero skills were extracted from resume {file_path.name}. "
+            "Ensure the resume contains valid parseable text and recognizable technologies."
+        )
 
     # Certifications
     certifications = []
@@ -293,12 +307,21 @@ def parse_resume(
     # Step 5: Extract links
     links = _extract_links(full_text)
 
-    # Step 6: Compute total experience years
-    total_exp_years = 0.0
+    # Step 6: Compute total experience years using interval union
+    exp_ranges = []
     for exp in experience:
-        duration = exp.get("duration_months", 0)
-        if duration:
-            total_exp_years += duration / 12.0
+        start = exp.get("start_date")
+        end = exp.get("end_date")
+        
+        # Parse strings back to dates if they exist, else None
+        s_date = parse_date(start) if start else None
+        e_date = parse_date(end) if end else None
+        
+        if s_date or e_date:
+            exp_ranges.append((s_date, e_date))
+            
+    total_months = compute_total_experience_months(exp_ranges)
+    total_exp_years = total_months / 12.0
 
     # Build evidence graph (skill → evidence sources)
     evidence_graph: dict[str, dict] = {}

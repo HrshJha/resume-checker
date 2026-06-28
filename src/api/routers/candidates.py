@@ -7,6 +7,7 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+import anyio
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -111,8 +112,11 @@ async def upload_resume(
     file_path = Path(settings.upload_dir) / file_name
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(file_path, "wb") as f:
-        f.write(contents)
+    def _write_file() -> None:
+        with open(file_path, "wb") as f:
+            f.write(contents)
+
+    await anyio.to_thread.run_sync(_write_file)
 
     # Create candidate record
     repo = CandidateRepository(session)
@@ -121,6 +125,7 @@ async def upload_resume(
         raw_resume_path=str(file_path),
         processing_status="pending",
     )
+    await session.commit()
 
     # Queue background processing
     background_tasks.add_task(_process_resume, candidate_id, str(file_path))

@@ -19,6 +19,23 @@ from src.utils.logger import get_logger
 
 logger = get_logger("skill_canonicalizer")
 
+# Global NLP model cache
+_nlp = None
+
+def _get_nlp():
+    """Load spaCy NLP model for NER and phrase detection."""
+    global _nlp
+    if _nlp is None:
+        try:
+            import spacy
+            logger.info("Loading spaCy model en_core_web_sm...")
+            _nlp = spacy.load("en_core_web_sm", disable=["ner"])
+        except Exception as e:
+            logger.warning(f"Failed to load spaCy model: {e}")
+            _nlp = False # False means tried and failed
+    return _nlp if _nlp is not False else None
+
+
 # ---------------------------------------------------------------------------
 # Common synonym mappings (loaded eagerly)
 # ---------------------------------------------------------------------------
@@ -26,6 +43,7 @@ _SYNONYM_MAP: dict[str, str] = {
     # JavaScript ecosystem
     "js": "JavaScript",
     "javascript": "JavaScript",
+    "java script": "JavaScript",
     "ecmascript": "JavaScript",
     "es6": "JavaScript",
     "es2015": "JavaScript",
@@ -33,6 +51,7 @@ _SYNONYM_MAP: dict[str, str] = {
     "typescript": "TypeScript",
     "node": "Node.js",
     "nodejs": "Node.js",
+    "node js": "Node.js",
     "node.js": "Node.js",
     "react": "React",
     "reactjs": "React",
@@ -54,12 +73,14 @@ _SYNONYM_MAP: dict[str, str] = {
     "django": "Django",
     "flask": "Flask",
     "fastapi": "FastAPI",
+    "fast api": "FastAPI",
     "pytorch": "PyTorch",
     "pytorch lightning": "PyTorch",
     "tensorflow": "TensorFlow",
     "tf": "TensorFlow",
     "keras": "Keras",
     "scikit-learn": "scikit-learn",
+    "scikit learn": "scikit-learn",
     "sklearn": "scikit-learn",
     "pandas": "pandas",
     "numpy": "NumPy",
@@ -104,6 +125,7 @@ _SYNONYM_MAP: dict[str, str] = {
     "java": "Java",
     "c++": "C++",
     "cpp": "C++",
+    "c plus plus": "C++",
     "c#": "C#",
     "csharp": "C#",
     "golang": "Go",
@@ -138,6 +160,7 @@ _SYNONYM_MAP: dict[str, str] = {
     # Tools
     "git": "Git",
     "github": "GitHub",
+    "git hub": "GitHub",
     "gitlab": "GitLab",
     "jira": "Jira",
     "confluence": "Confluence",
@@ -152,6 +175,8 @@ _SYNONYM_MAP: dict[str, str] = {
 
     # Messaging & APIs
     "rest": "REST API",
+    "rest api": "REST API",
+    "rest apis": "REST API",
     "restful": "REST API",
     "graphql": "GraphQL",
     "grpc": "gRPC",
@@ -286,3 +311,63 @@ class SkillCanonicalizer:
     def get_canonical_names(self) -> list[str]:
         """Return all known canonical skill names."""
         return list(self._canonical_names)
+
+    def extract_skills_from_text(self, text: str) -> list[str]:
+        """
+        Extract all known skills from a large body of text using regex word boundaries
+        and spaCy-based Phrase Detection/NER for unknown proper nouns.
+        Returns a deduplicated list of canonical skill names.
+        """
+        import re
+        if not text:
+            return []
+            
+        extracted_canonical = set()
+        
+        # 1. Dictionary Matching (Highest Confidence)
+        text_lower = text.lower()
+        sorted_synonyms = sorted(self._synonym_map.keys(), key=len, reverse=True)
+        
+        for synonym in sorted_synonyms:
+            if len(synonym) < 2 and synonym not in ["c", "r"]:
+                continue
+                
+            escaped_synonym = re.escape(synonym)
+            if re.search(r'(?<![a-z0-9])' + escaped_synonym + r'(?![a-z0-9])', text_lower):
+                canonical = self._synonym_map[synonym]
+                extracted_canonical.add(canonical)
+                # Remove matched known skills so NER doesn't duplicate them
+                text_lower = re.sub(r'(?<![a-z0-9])' + escaped_synonym + r'(?![a-z0-9])', ' ', text_lower)
+                
+        # 2. Phrase Detection & POS Tagging (spaCy) for Unknown Skills
+        nlp = _get_nlp()
+        if nlp:
+            # We process the original text (cased) to detect Proper Nouns
+            doc = nlp(text)
+            
+            # Extract consecutive PROPN (Proper Nouns) as potential skills
+            current_propn = []
+            potential_skills = set()
+            
+            for token in doc:
+                if token.pos_ == "PROPN" and len(token.text) > 1:
+                    current_propn.append(token.text)
+                else:
+                    if current_propn:
+                        phrase = " ".join(current_propn)
+                        # Filter out common false positives and ensure it's not just regular words
+                        if len(phrase) > 2 and phrase.lower() not in self._synonym_map:
+                            potential_skills.add(phrase)
+                        current_propn = []
+                        
+            # If a potential skill appears more than once or looks like a tech acronym
+            for phrase in potential_skills:
+                # Basic heuristic: if it has uppercase inside (e.g. FastAPI, TensorFlow) or numbers (e.g. GPT4)
+                if re.search(r'[A-Z].*[A-Z]', phrase) or re.search(r'\d', phrase):
+                    canonical, conf = self.canonicalize(phrase)
+                    if conf > 0.8:
+                        extracted_canonical.add(canonical)
+                    else:
+                        extracted_canonical.add(phrase.title())
+                
+        return list(extracted_canonical)

@@ -75,31 +75,20 @@ def _extract_skills_from_text(
 ) -> list[ExtractedSkill]:
     """Extract and canonicalize skills from a text block."""
     skills: list[ExtractedSkill] = []
-    seen: set[str] = set()
-
-    # Extract from bullet items
-    items = _extract_bullet_items(text)
-
-    for item in items:
-        # Try to find known skills in each item
-        words = re.split(r"[,;/|]|\band\b|\bor\b", item)
-        for word in words:
-            word = word.strip().strip("()[].")
-            if len(word) < 2 or len(word) > 50:
-                continue
-
-            canonical, conf = canonicalizer.canonicalize(word)
-            if conf >= 0.7 and canonical.lower() not in seen:
-                seen.add(canonical.lower())
-                skills.append(
-                    ExtractedSkill(
-                        name=canonical,
-                        raw_text=word,
-                        category=category,
-                        confidence=conf,
-                        source_section=section_name,
-                    )
-                )
+    
+    # Extract using robust global ontology matching
+    extracted_names = canonicalizer.extract_skills_from_text(text)
+    
+    for name in extracted_names:
+        skills.append(
+            ExtractedSkill(
+                name=name,
+                raw_text=name,
+                category=category,
+                confidence=1.0,
+                source_section=section_name,
+            )
+        )
 
     return skills
 

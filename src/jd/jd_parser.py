@@ -45,6 +45,13 @@ _JD_SECTION_PATTERNS: dict[str, list[re.Pattern]] = {
     "experience": [
         re.compile(r"^experience\b", re.IGNORECASE),
     ],
+    "education": [
+        re.compile(r"^(education|academic)\b", re.IGNORECASE),
+        re.compile(r"^(degree|qualifications)\b", re.IGNORECASE),
+    ],
+    "certifications": [
+        re.compile(r"^(certifications?|licenses?)\b", re.IGNORECASE),
+    ],
 }
 
 # Experience range patterns

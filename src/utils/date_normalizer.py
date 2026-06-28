@@ -203,3 +203,39 @@ def check_date_overlap(
             if s1 <= e2 and s2 <= e1:
                 overlaps.append((valid[i][0], valid[j][0]))
     return overlaps
+
+def compute_total_experience_months(ranges: list[tuple[Optional[date], Optional[date]]]) -> float:
+    """
+    Compute total unique months of experience by unioning overlapping date ranges.
+    """
+    valid_ranges = []
+    for s, e in ranges:
+        if s is not None and e is not None:
+            # Swap if reversed
+            if e < s:
+                s, e = e, s
+            valid_ranges.append((s, e))
+            
+    if not valid_ranges:
+        return 0.0
+        
+    # Sort by start date
+    valid_ranges.sort(key=lambda x: x[0])
+    
+    merged = [valid_ranges[0]]
+    for current_start, current_end in valid_ranges[1:]:
+        last_start, last_end = merged[-1]
+        
+        if current_start <= last_end:
+            # Overlapping or adjacent, merge them
+            merged[-1] = (last_start, max(last_end, current_end))
+        else:
+            # No overlap
+            merged.append((current_start, current_end))
+            
+    total_months = 0.0
+    for s, e in merged:
+        delta_months = (e.year - s.year) * 12 + (e.month - s.month)
+        total_months += max(0.0, float(delta_months))
+        
+    return total_months

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy import event
 from sqlalchemy.orm import DeclarativeBase
 
 from src.utils.logger import get_logger
@@ -47,7 +48,7 @@ async def init_db(db_url: str, echo: bool = False) -> None:
     # Determine connect_args based on database type
     connect_args = {}
     if "sqlite" in db_url:
-        connect_args["check_same_thread"] = False
+        connect_args.update({"check_same_thread": False, "timeout": 30})
 
     _engine = create_async_engine(
         db_url,
@@ -55,6 +56,14 @@ async def init_db(db_url: str, echo: bool = False) -> None:
         connect_args=connect_args,
         pool_pre_ping=True,
     )
+    if "sqlite" in db_url:
+        @event.listens_for(_engine.sync_engine, "connect")
+        def _set_sqlite_pragmas(dbapi_connection, _connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.close()
+
     _async_session_factory = async_sessionmaker(
         _engine,
         class_=AsyncSession,

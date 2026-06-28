@@ -43,6 +43,31 @@ class PDFParseResult:
     is_scanned: bool = False
     parser_used: str = "pdfplumber"
     warnings: list[str] = field(default_factory=list)
+    confidence: float = 1.0
+
+
+def _calculate_confidence(text: str, page_count: int) -> float:
+    """Calculate extraction confidence based on text density and gibberish ratio."""
+    if not text.strip():
+        return 0.0
+        
+    # Check if text is too short for the number of pages (likely mostly images)
+    if len(text.strip()) < (page_count * 150):
+        return 0.5
+        
+    # Check ratio of alphanumeric characters (detects garbled font encodings)
+    alphanumeric = sum(c.isalnum() or c.isspace() for c in text)
+    total = len(text)
+    if total == 0:
+        return 0.0
+        
+    ratio = alphanumeric / total
+    if ratio > 0.85:
+        return 1.0
+    elif ratio > 0.70:
+        return 0.85
+    else:
+        return 0.40
 
 
 def _detect_columns(blocks: list[dict], page_width: float) -> int:
@@ -119,8 +144,10 @@ def parse_pdf_pdfplumber(file_path: str | Path) -> PDFParseResult:
             for page_num, page in enumerate(pdf.pages):
                 page_width = page.width
 
-                # Extract text
-                page_text = page.extract_text() or ""
+                # Extract text with layout preservation for better table/column handling
+                page_text = page.extract_text(layout=True)
+                if not page_text or not page_text.strip():
+                    page_text = page.extract_text() or ""
                 pages.append(page_text)
 
                 # Check if page is scanned (no extractable text)
@@ -177,6 +204,7 @@ def parse_pdf_pdfplumber(file_path: str | Path) -> PDFParseResult:
                     warnings.append(f"Page {page_num + 1}: Table extraction failed: {e}")
 
         full_text = "\n".join(pages)
+        confidence = _calculate_confidence(full_text, page_count)
 
         return PDFParseResult(
             full_text=full_text,
@@ -187,6 +215,7 @@ def parse_pdf_pdfplumber(file_path: str | Path) -> PDFParseResult:
             is_scanned=is_scanned,
             parser_used="pdfplumber",
             warnings=warnings,
+            confidence=confidence,
         )
 
     except Exception as e:
@@ -250,6 +279,7 @@ def parse_pdf_pymupdf(file_path: str | Path) -> PDFParseResult:
 
         doc.close()
         full_text = "\n".join(pages)
+        confidence = _calculate_confidence(full_text, page_count)
 
         return PDFParseResult(
             full_text=full_text,
@@ -260,6 +290,7 @@ def parse_pdf_pymupdf(file_path: str | Path) -> PDFParseResult:
             is_scanned=is_scanned,
             parser_used="pymupdf",
             warnings=warnings,
+            confidence=confidence,
         )
 
     except Exception as e:
@@ -271,6 +302,7 @@ def parse_pdf_pymupdf(file_path: str | Path) -> PDFParseResult:
             is_scanned=True,
             parser_used="pymupdf",
             warnings=[f"Both parsers failed: {e}"],
+            confidence=0.0,
         )
 
 
@@ -289,8 +321,27 @@ def parse_pdf(file_path: str | Path) -> PDFParseResult:
     """
     result = parse_pdf_pdfplumber(file_path)
 
-    # If scanned and no text extracted, flag for OCR
-    if result.is_scanned and not result.full_text.strip():
-        logger.info(f"PDF appears scanned: {file_path}, OCR recommended")
+    # Trigger OCR if confidence < 95% or explicitly scanned
+    if result.confidence < 0.95 or (result.is_scanned and not result.full_text.strip()):
+        logger.info(f"Low parsing confidence ({result.confidence:.2f}) or scanned PDF: {file_path}. Triggering OCR fallback.")
+        try:
+            from src.parser.ocr_parser import parse_scanned_pdf
+            ocr_result = parse_scanned_pdf(file_path)
+            
+            # Use OCR result if it yielded better text density
+            if len(ocr_result.full_text.strip()) > len(result.full_text.strip()):
+                return PDFParseResult(
+                    full_text=ocr_result.full_text,
+                    pages=[ocr_result.full_text],
+                    page_count=result.page_count,
+                    is_scanned=True,
+                    parser_used="ocr",
+                    warnings=result.warnings + ocr_result.warnings,
+                    confidence=1.0,
+                )
+        except ImportError:
+            logger.warning("OCR parser not available. Falling back to original extracted text.")
+        except Exception as e:
+            logger.warning(f"OCR fallback failed: {e}")
 
     return result
