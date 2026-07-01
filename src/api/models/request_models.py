@@ -33,6 +33,29 @@ class FilterModel(BaseModel):
     work_auth: Optional[str] = None
 
 
+class ExportRequest(BaseModel):
+    """
+    Query parameters / body for the XLSX ranking export endpoint.
+
+    Both fields are optional so a plain GET request with no body works.
+    """
+
+    top_k: int = Field(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum number of ranked candidates to include in the export.",
+    )
+    include_explanations: bool = Field(
+        default=True,
+        description=(
+            "When True, the Explanation column is populated from the database "
+            "when SHAP explanations are available; otherwise a compact inline "
+            "summary is generated from the ranking sub-scores."
+        ),
+    )
+
+
 class TokenRequest(BaseModel):
     """Login request."""
     username: str

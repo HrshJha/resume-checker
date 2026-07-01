@@ -1,14 +1,22 @@
 """
 Search and ranking router — the main ranking pipeline endpoint.
+
+Endpoints
+---------
+POST /rank                          Run the full ranking pipeline.
+GET  /rank/{jd_id}/{cid}/explain    SHAP explanation for one candidate.
+GET  /rank/{jd_id}/export           Export ranked list as XLSX.
 """
 
 from __future__ import annotations
 
+import io
 import time
 import re
 from typing import Any, TypedDict, cast
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.database import get_session
@@ -16,10 +24,12 @@ from src.api.db_models import Candidate, User
 from src.api.dependencies import get_current_user
 from src.api.models.request_models import (
     ExplanationResponse,
+    ExportRequest,
     RankedListResponse,
     RankRequest,
     RankResultItem,
 )
+from src.api.services.ranking_exporter import RankingExporter
 from src.api.repositories.jd_repo import JDRepository
 from src.api.repositories.ranking_repo import RankingRepository
 from src.api.repositories.candidate_repo import CandidateRepository
@@ -403,4 +413,83 @@ async def get_explanation(
             f"{'Strong hire' if ranking.final_score > 0.8 else 'Needs technical interview' if ranking.final_score > 0.6 else 'Pass'}"
         ),
         counterfactuals=[],
+    )
+
+
+# ---------------------------------------------------------------------------
+# XLSX Export endpoint
+# ---------------------------------------------------------------------------
+
+@router.get("/rank/{jd_id}/export")
+async def export_ranking_xlsx(
+    jd_id: str,
+    top_k: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum candidates to include in the XLSX export.",
+    ),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """
+    Export the ranked candidate list for a job description as an XLSX file.
+
+    The ranking must have been generated previously via
+    ``POST /api/v1/search/rank``.  This endpoint reads the persisted rankings
+    from the database — it does **not** re-run the ranking pipeline.
+
+    Returns
+    -------
+    StreamingResponse
+        A ``application/vnd.openxmlformats-officedocument.spreadsheetml.sheet``
+        response with the filename ``ranking_{jd_id}.xlsx``.
+
+    Raises
+    ------
+    404
+        If the JD does not exist.
+    409
+        If no rankings exist for the JD (run POST /rank first).
+    """
+    # Validate JD exists (reuses the same guard as the rank endpoint)
+    from src.api.repositories.jd_repo import JDRepository
+
+    jd_repo = JDRepository(session)
+    jd = await jd_repo.get_by_id(jd_id)
+    if jd is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job description not found: {jd_id}",
+        )
+
+    exporter = RankingExporter()
+    try:
+        xlsx_bytes = await exporter.export_to_bytes(
+            jd_id=jd_id,
+            session=session,
+            top_k=top_k,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+
+    filename = f"ranking_{jd_id}.xlsx"
+    logger.info(
+        f"XLSX export served: JD={jd_id}, {len(xlsx_bytes):,} bytes, "
+        f"user={current_user.username}"
+    )
+
+    return StreamingResponse(
+        content=io.BytesIO(xlsx_bytes),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(xlsx_bytes)),
+            "Cache-Control": "no-store",
+        },
     )
