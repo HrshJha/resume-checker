@@ -79,6 +79,11 @@ INDEX_HTML = """<!doctype html>
       color: var(--accent);
       border: 1px solid #c9ddf3;
     }
+    button.success {
+      background: #137333;
+      color: white;
+    }
+    button.success:hover:not(:disabled) { background: #0d5626; }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .status {
@@ -162,6 +167,7 @@ Preferred:
 - Experience with AWS or GCP
 - Contributions to open source projects</textarea>
       <button id="matchBtn" disabled>Check Match</button>
+      <button id="exportBtn" class="success" disabled style="margin-top:8px;">⬇ Download Ranked List as XLSX</button>
       <div id="matchStatus" class="status">Login, upload a resume, then check match.</div>
 
       <div id="results" style="display:none; margin-top:16px">
@@ -457,6 +463,11 @@ Preferred:
         renderDebugPanel(state.candidateId, state.candidate, state.rank);
         
         setStatus("matchStatus", "Match complete.");
+        // Enable the export button now that we have a jd_id
+        const exportBtn = $("exportBtn");
+        if (exportBtn && state.jdId) {
+          exportBtn.disabled = false;
+        }
       } catch (err) {
         setStatus("matchStatus", `Match failed: ${err.message}`);
       } finally {
@@ -464,9 +475,43 @@ Preferred:
       }
     }
 
+    async function downloadXlsx() {
+      if (!state.jdId) {
+        setStatus("matchStatus", "Run a match first to generate a ranked list.");
+        return;
+      }
+      const exportBtn = $("exportBtn");
+      if (exportBtn) exportBtn.disabled = true;
+      setStatus("matchStatus", "Preparing XLSX export...");
+      try {
+        const response = await fetch(`/api/v1/search/rank/${state.jdId}/export`, {
+          headers: authHeaders()
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ranked_candidates_${state.jdId.slice(0, 8)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus("matchStatus", "XLSX downloaded successfully.");
+      } catch (err) {
+        setStatus("matchStatus", `Export failed: ${err.message}`);
+      } finally {
+        if (exportBtn) exportBtn.disabled = false;
+      }
+    }
+
     $("loginBtn").addEventListener("click", registerOrLogin);
     $("uploadBtn").addEventListener("click", uploadResume);
     $("matchBtn").addEventListener("click", checkMatch);
+    $("exportBtn").addEventListener("click", downloadXlsx);
     
     // Debug Panel Toggle
     $("toggleDebugBtn").addEventListener("click", () => {
