@@ -23,6 +23,7 @@ integration tests in test_api_endpoints.py).
 from __future__ import annotations
 
 import io
+from decimal import Decimal
 
 import openpyxl
 import pytest
@@ -267,11 +268,11 @@ async def test_export_rows_sorted_by_rank(client, auth_headers, ranked_jd_id):
     ws = wb.active
     assert ws is not None
 
-    ranks = []
+    ranks: list[float] = []
     for row_idx in range(2, ws.max_row + 1):
         val = ws.cell(row=row_idx, column=1).value
-        if val is not None:
-            ranks.append(val)
+        if isinstance(val, (int, float, str, Decimal)):
+            ranks.append(float(val))
 
     assert ranks == sorted(ranks), f"Ranks not sorted: {ranks}"
 
@@ -387,6 +388,9 @@ async def test_export_scores_match_rank_api(client, auth_headers, ranked_jd_id):
         xlsx_score = ws.cell(row=row_idx, column=score_col).value
         if cid and cid in api_scores:
             api_score = api_scores[cid]
+            assert isinstance(xlsx_score, (int, float, str, Decimal)), (
+                f"Unexpected score type for {cid}: {type(xlsx_score)}"
+            )
             # Allow small floating-point delta (scores are rounded to 4 or 6 dp)
             assert abs(float(xlsx_score) - float(api_score)) < 1e-4, (
                 f"Score mismatch for {cid}: XLSX={xlsx_score}, API={api_score}"
